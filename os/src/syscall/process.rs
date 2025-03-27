@@ -73,7 +73,7 @@ pub fn sys_trace(trace_request: usize, id: usize, data: usize) -> isize {
             let vpn: VirtPageNum = VirtAddr::from(r_addr as usize).floor();
 
             if let Some(pte) = page_table.translate(vpn) {
-                if (pte.flags() & PTEFlags::U) != PTEFlags::empty() && pte.readable() {
+                if pte.is_valid() && (pte.flags() & PTEFlags::U) != PTEFlags::empty() && pte.readable() {
                     let buffers = 
                         crate::mm::translated_byte_buffer(
                         crate::task::current_user_token(), 
@@ -95,7 +95,7 @@ pub fn sys_trace(trace_request: usize, id: usize, data: usize) -> isize {
             let vpn: VirtPageNum = VirtAddr::from(w_addr as usize).floor();
 
             if let Some(pte) = page_table.translate(vpn) {
-                if (pte.flags() & PTEFlags::U) != PTEFlags::empty() && pte.writable() {
+                if pte.is_valid() && (pte.flags() & PTEFlags::U) != PTEFlags::empty() && pte.writable() {
                     let mut buffers = 
                         crate::mm::translated_byte_buffer(
                         crate::task::current_user_token(), 

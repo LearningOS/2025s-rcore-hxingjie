@@ -180,9 +180,6 @@ impl TaskManager {
             return 0;
         }
 
-        let mut inner = self.inner.exclusive_access();
-        let current = inner.current_task;
-        
         let page_cnt;
         if len % crate::config::PAGE_SIZE == 0 {
             page_cnt = len / crate::config::PAGE_SIZE;
@@ -196,6 +193,8 @@ impl TaskManager {
             tmp += crate::config::PAGE_SIZE;
         }
         
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
         let tcb = &mut inner.tasks[current];
         if tcb.memory_set.already_mmap(&vpns) {
             return -1; //some pages already_mmap
