@@ -44,6 +44,101 @@ impl Processor {
     pub fn current(&self) -> Option<Arc<TaskControlBlock>> {
         self.current.as_ref().map(Arc::clone)
     }
+
+    /// for mmap
+    fn mmap(&self, start: usize, len: usize, port: usize) -> isize {
+        use crate::mm::VirtAddr;
+
+        // check args
+        if ! VirtAddr::from(start).aligned() {
+            return -1; // no aligned
+        } else if port & !0x7 != 0 {
+            return -1; // no valid port
+        } else if port & 0x7 == 0 {
+            return -1; // meaningless
+        } else if len == 0 {
+            return 0;
+        }
+
+        // get page cnt
+        let page_cnt;
+        if len % crate::config::PAGE_SIZE == 0 {
+            page_cnt = len / crate::config::PAGE_SIZE;
+        } else {
+            page_cnt = len / crate::config::PAGE_SIZE + 1;
+        }
+        // get map vpns
+        use alloc::vec::Vec;
+        let mut vpns = Vec::new();
+        let mut tmp = start;
+        for _ in 0..page_cnt {
+            vpns.push(VirtAddr::from(tmp).floor());
+            tmp += crate::config::PAGE_SIZE;
+        }
+
+        let tcb = self.current().unwrap();
+        let mut tcb = tcb.inner_exclusive_access();
+        if tcb.memory_set.already_mmap(&vpns) {
+            return -1; //some pages already_mmap
+        }
+
+        // config map_perm
+        use crate::mm::MapPermission;
+        let mut map_perm = MapPermission::U;
+        if port & (1 << 0) != 0 {
+            map_perm |= MapPermission::R;
+        }
+        if port & (1 << 1) != 0 {
+            map_perm |= MapPermission::W;
+        }
+        if port & (1 << 2) != 0 {
+            map_perm |= MapPermission::X;
+        }
+        
+        // insert
+        tcb.memory_set.my_insert_framed_area(
+            VirtAddr::from(start), 
+            VirtAddr::from(start + page_cnt * crate::config::PAGE_SIZE), 
+            map_perm) // alloc fail will return -1 
+    }
+
+    /// for munmap
+    fn munmap(&self, start: usize, len: usize) -> isize {
+        use crate::mm::VirtAddr;
+        if ! VirtAddr::from(start).aligned() {
+            return -1; // start is no align
+        }
+        let start = start & !((1 << crate::config::PAGE_SIZE_BITS) - 1);
+        let page_cnt;
+        if len % crate::config::PAGE_SIZE == 0 {
+            page_cnt = len / crate::config::PAGE_SIZE;
+        } else {
+            page_cnt = len / crate::config::PAGE_SIZE + 1;
+        }
+        if page_cnt == 0 {
+            return 0; // page cnt is 0
+        }
+
+        // now start is align and page_cnt is ok
+        use alloc::vec::Vec;
+        let mut vpns = Vec::new();
+        let mut tmp = start;
+        for _ in 0..page_cnt {
+            vpns.push(VirtAddr::from(tmp).floor());
+            tmp += crate::config::PAGE_SIZE;
+        }
+        
+        let tcb = self.current().unwrap();
+        let mut tcb = tcb.inner_exclusive_access();
+        if ! tcb.memory_set.already_all_mmap(&vpns) {
+            // 检查是否都被映射
+            return -1; // no already all mmap
+        }
+
+        tcb.memory_set.my_remove_framed_page(&vpns);
+
+        0
+    }
 }
 
 lazy_static! {
@@ -108,4 +203,14 @@ pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
     unsafe {
         __switch(switched_task_cx_ptr, idle_task_cx_ptr);
     }
+}
+
+/// mmap
+pub fn mmap(start: usize, len: usize, port: usize) -> isize{
+    PROCESSOR.exclusive_access().mmap(start, len, port)
+}
+
+/// munmap
+pub fn munmap(start: usize, len: usize) -> isize{
+    PROCESSOR.exclusive_access().munmap(start, len)
 }
