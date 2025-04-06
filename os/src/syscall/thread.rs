@@ -50,7 +50,6 @@ pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
 
     // my code
     // add new thread to current process
-    println!("sys_thread_create");
     let mutex_len = process_inner.mutex_available.len();
     let semaphore_len = process_inner.semaphore_available.len();
     while process_inner.tasks.len() < new_task_tid + 1 {
@@ -62,10 +61,6 @@ pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
         process_inner.semaphore_allocation.push(vec![0; semaphore_len]);
         process_inner.semaphore_need.push(vec![0; semaphore_len]);
     }
-    assert!(process_inner.tasks.len() == process_inner.mutex_allocation.len());
-    assert!(process_inner.tasks.len() == process_inner.mutex_need.len());
-    assert!(process_inner.tasks.len() == process_inner.semaphore_allocation.len());
-    assert!(process_inner.tasks.len() == process_inner.semaphore_need.len());
     process_inner.tasks[new_task_tid] = Some(Arc::clone(&new_task));
     // my code
 

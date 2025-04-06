@@ -41,10 +41,8 @@ impl Semaphore {
         let mut process_inner = process.inner_exclusive_access();
         let tid = current_task().unwrap().get_tid();
 
-        //println!("semaphore up\ntid: {}, sed_id: {}, before\navai: {:?}\nalloc {:?}\nneed {:?}", tid, sem_id, process_inner.semaphore_available, process_inner.semaphore_allocation, process_inner.semaphore_need);
         process_inner.semaphore_available[sem_id] += 1;
         process_inner.semaphore_allocation[tid][sem_id] -= 1;
-        //println!("semaphore up\ntid: {}, sed_id: {}, after\navai: {:?}\nalloc {:?}\nneed {:?}\n", tid, sem_id, process_inner.semaphore_available, process_inner.semaphore_allocation, process_inner.semaphore_need);
         drop(process_inner);
         drop(process);
 
@@ -71,11 +69,8 @@ impl Semaphore {
         let mut process_inner = process.inner_exclusive_access();
         let tid = current_task().unwrap().get_tid();
 
-        //println!("semaphore down\ntid: {}, sed_id: {}, before\navai: {:?}\nalloc {:?}\nneed {:?}", tid, sem_id, process_inner.semaphore_available, process_inner.semaphore_allocation, process_inner.semaphore_need);
         process_inner.semaphore_available[sem_id] -= 1;
         process_inner.semaphore_allocation[tid][sem_id] += 1;
         process_inner.semaphore_need[tid][sem_id] -= 1;
-        //println!("semaphore down\ntid: {}, sed_id: {}, after\navai: {:?}\nalloc {:?}\nneed {:?}\n", tid, sem_id, process_inner.semaphore_available, process_inner.semaphore_allocation, process_inner.semaphore_need);
-
     }
 }

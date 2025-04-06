@@ -93,7 +93,9 @@ pub fn sys_mutex_lock(mutex_id: usize) -> isize {
 
     let mut lock = true;
     if process_inner.enable_deadlock_detect {
-        lock = ! detect_deadlock(&process_inner.mutex_available, &process_inner.mutex_allocation, &process_inner.mutex_need);
+        lock = ! detect_deadlock(&process_inner.mutex_available, 
+                                 &process_inner.mutex_allocation, 
+                                 &process_inner.mutex_need);
     }
 
     if lock {
