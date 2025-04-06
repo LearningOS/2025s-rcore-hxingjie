@@ -178,8 +178,6 @@ pub fn sys_semaphore_create(res_count: usize) -> isize {
         process_inner.semaphore_list.len() - 1
     };
 
-    println!("semaphore create, sem_id: {}, avai {:?} || alloc {:?} || need {:?}", id, process_inner.semaphore_available, process_inner.semaphore_allocation, process_inner.semaphore_need);
-
     id as isize
 }
 /// semaphore up syscall
@@ -227,7 +225,6 @@ pub fn sys_semaphore_down(sem_id: usize) -> isize {
     let tid = current_task().unwrap().get_tid();
 
     process_inner.semaphore_need[tid][sem_id] += 1;
-    println!("tid: {}, down sem_id: {}", tid, sem_id);
 
     let mut down = true;
     if process_inner.enable_deadlock_detect {
